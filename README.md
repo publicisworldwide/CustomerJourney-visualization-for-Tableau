@@ -1,5 +1,5 @@
 #  Customer journey visualisation 
-**Sunburst diagram ** plugin for Tableau JS
+**Sunburst diagram** plugin for Tableau JS
 
 Working Tableau Webdataconnector WDC which can be embedded in Tableau Dashboard
 
