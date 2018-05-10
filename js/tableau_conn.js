@@ -1,20 +1,17 @@
-import json2csv from '../node_modules/json2csv';
-import underscore from "../node_modules/underscore";
-
-
+import _ from "../node_modules/lodash";
+import d3 from "../node_modules/d3v4";
 
 class TableauConnector {
 
-    constructor(){
+    constructor() {
         console.info("Initializing Tableau Connector");
-        this. colIdxMaps = {};
-        this.colIdxMaps.__proto__.getColumnIdx = function(name){
-            try{
-                table = this;
-                return table[name];
+        this.colIdxMaps = {};
+        this.colIdxMaps.getColumnIdx = function (name) {
+            try {
+                return this[name];
 
-            }catch(err){
-
+            } catch (err) {
+                console.warn("Could not find coulum " + name + " in given data");
                 return -1;
             }
         };
@@ -25,6 +22,7 @@ class TableauConnector {
     getTableau() {
         return parent.parent.tableau;
     }
+
     getCurrentViz() {
         return this.getTableau().VizManager.getVizs()[0];
     }
@@ -33,9 +31,8 @@ class TableauConnector {
         return this.getCurrentViz().getWorkbook().getActiveSheet().getWorksheets()[0];
     }
 
-
     errorWrapped(context, fn) {
-        return function() {
+        return function () {
             var args, err;
             args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
             try {
@@ -46,84 +43,87 @@ class TableauConnector {
             }
         };
     }
-    onData (data){
+
+    onData(data) {
+
+        var columns = data.getColumns();
+        // Build colIDxMap which maps column name with it's indicies
+        for (let j = 0, len = columns.length; j < len; j++) {
+            let c = columns[j];
+            this.colIdxMaps[c.getFieldName()] = c.getIndex();
+        }
         try {
-
-
-            var columns = data.getColumns();
-            // Build colIDxMap which maps column name with it's indicies
-            for (let j = 0, len = columns.length; j < len; j++) {
-                c = columns[j];
-                this.colIdxMaps[c.getFieldName()] = c.getIndex();
-            }
-
-            dt = data.getData();
+            let dt = data.getData();
             console.log(data.getName());
+            var cjString = this.colIdxMaps.getColumnIdx("Cj Full String");
+            var conversionsAmmount = this.colIdxMaps.getColumnIdx("Relevance");
 
 
-            sunburstJourneyData =
+            var sunburstJourneyData =
                 _.chain(data.getData())
                     .map((item) => {
                         let con = item[conversionsAmmount].value;
 
                         let t = item[cjString].value;
-                        let jr = _s(t).replaceAll(" ", "").value();
+                        let jr = t //.replace(/\s/g, "");
                         let last = jr.split(">").pop();
 
                         return [jr, con, last.split("/")[1]];
                     }).value();
 
-            if(sunburstJourneyData.length === 0){
-                throw RangeException("No data to visualize !");
+            if (sunburstJourneyData.length == 0) {
+                throw "No data to visualize !"
             }
-            var unique = _.uniq(sunburstJourneyData, (s) => s[0]);
-            var csv = json2csv({data: sunburstJourneyData});
-            console.log(sunburstJourneyData.length);
-            console.log(sunburstJourneyData)
-            if (graphInitialized) {
+            var unique = _.uniqBy(sunburstJourneyData, (s) => {
+                return s[0]
+            });
+            //var csv = json2csv({data: sunburstJourneyData});
+            console.log(unique.length);
+            console.log(unique)
+            if (!this.graphInitialized) {
                 let sb = new Sunburst({}, unique);
                 window.viz = sb;
-                this.graphInitialized= true;
+                this.graphInitialized = true;
             } else {
                 console.log("Updating Data!");
 
-                window.viz.updateData(sunburstJourneyData);
+                window.viz.updateData(unique);
             }
             //sb.createVisualization
-        } catch(err) {
-            console.log(err);
+        } catch (err) {
+
+            this.errorWrapped("Reading received data ", function () {
+                let body = document.getElementsByTagName("body")[0]
+                console.log("Wrapped")
+            })
         }
 
         return true;
     }
+
     updateChart() {
-        return getCurrentWorksheet().getUnderlyingDataAsync({
+        return this.getCurrentWorksheet().getUnderlyingDataAsync({
             maxRows: 0,
             ignoreSelection: false,
             includeAllColumns: true,
             ignoreAliases: true
         })
-            .then(this.onDataLoadOk, this.onDataLoadError);
+            .then(this.onData.bind(this), this.onDataLoadError.bind(this));
     }
+
     onDataLoadOk(table) {
 
-        //SPECIFY THE VALUES THAT YOU WANT TO FILTEROUT
-
-
-       // var colIdxMaps = {};
-        ref = table.getColumns();
+        var ref = table.getColumns();
         for (var j = 0, len = ref.length; j < len; j++) {
             c = ref[j];
             this.colIdxMaps[c.getFieldName()] = c.getIndex();
         }
-        console.log("table.getColumns() :" );
+        console.log("table.getColumns() :");
 
         console.log(table.getColumns());
 
 
-        d3.selectAll("svg").exit().remove();
-
-        ondata(table);
+        onData(table);
         //updateChartWithData(table);
 
         return true;
@@ -133,37 +133,28 @@ class TableauConnector {
         console.log("serer");
         return console.err("Error during Tableau Async request: ", err);
     }
-    initChart() {
+
+    initConnector() {
         //var onDataLoadError, onDataLoadOk, tableau, updateChart;
-        tableau = this.getTableau();
+        var tableau = this.getTableau();
 
         console.log("Initialising Tableau !")
 
         var data;
-        getCurrentWorksheet()
+        this.getCurrentWorksheet()
             .getUnderlyingDataAsync({
                 ignoreSelection: false,
                 maxRows: 0,
                 includeAllColumns: false,
                 ignoreAliases: true
-            }).then(this.onData);
+            }).then(this.onData.bind(this));
 
 
-        return getCurrentViz().addEventListener(tableau.TableauEventName.MARKS_SELECTION, this.updateChart);
-    }
-
-
-    updateChartWithData(data) {
-        d3.select("svg").data(data);
-        console.info(data);
+        return this.getCurrentViz().addEventListener(tableau.TableauEventName.FILTER_CHANGE, this.updateChart.bind(this));
     }
 }
 
 
+var tc = new TableauConnector();
+tc.initConnector();
 
-$(window).onload((el)=>{
-
-    var tc = TableauConnector();
-    tc.initChart();
-
-});

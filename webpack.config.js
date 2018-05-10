@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-    entry: ['./js/tableau_connector.js',"./js/Sunburst.js"],
+    entry: ['./js/tableau_conn.js'],
     mode:  "development" ,// "none"
     output: {
         filename: 'bundle.js',

@@ -8,12 +8,12 @@ var defaultOptions = {
     },
 
     // Dimensions of sunburst.
-    width: 1100,
+    width: 1200,
     height: 550,
 
     // Mapping of step names to colors.
     colors: {
-        "offsite_organic": "#08a0e3",
+        "offsite": "#08a0e3",
         "onsite": "#0069B7",
         "conversion": "#F6A800",
         "offsite_paid": "#0012bb",
@@ -91,11 +91,15 @@ var defaultOptions = {
 };
 
 
+
+
+
+
 class Sunburst {
     constructor(options, data) {
 
         this.opt = Object.assign({}, defaultOptions, options);
-        this.opt.color = d3.scaleOrdinal(d3.schemeCategory20);
+        this.opt.color = d3.scaleOrdinal(d3.schemeCategory20c   );
 
         // Total size of all segments; we set this later, after loading the data.
         //this.totalSize = 0;
@@ -325,13 +329,16 @@ class Sunburst {
         let namesArr = this.getNodeNames(nodes[0]);
         try {
             this.drawLegend(namesArr.sort());
+
+
             //this.updateScale(namesArr[0].split("/").length)
         }
         catch (e) {
             console.log(e);
         }
         svg.select("circle").on("mouseleave", this.mouseleave.bind(this));
-        d3.select("#togglelegend").on("click", that.toggleLegend.bind(this));
+        //d3.select("#togglelegend").on("click", that.toggleLegend.bind(this));
+        //this.toggleLegend.call()
         d3.select("#reset").on("click", this.reset.bind(this));
         this.totalSize = root.value;
         this.root = root;
@@ -343,7 +350,7 @@ class Sunburst {
         var that = this;
 
 
-        var d = document.chart.svg.selectAll("path").data()[0];
+        var d = this.svg.selectAll("path").data()[0];
         var x = d3.scaleLinear()
             .range([0, 2 * Math.PI]);
         var y = d3.scaleSqrt()
@@ -555,7 +562,7 @@ class Sunburst {
         // Add the svg area.
         var trail = d3.select(this.opt.selectors.breadcrumbs).append("svg:svg")
             .attr("width", this.opt.width)
-            .attr("height", 70)
+            .attr("height", 80)
             .attr("id", "trail");
         // Add the label at the end, for the percentage.
         trail.append("svg:text")
@@ -665,7 +672,7 @@ class Sunburst {
         var len = elems.length * (li.h + li.s);
 
         //d3.select("#legend").selectAll("text").remove()
-        d3.select("#legend").select("svg").attr("height", len);
+        d3.select(this.opt.selectors.legend).select("svg").attr("height", len);
 
 
         var update = d3.select("#legend").select("svg").selectAll("g").data(elems);
@@ -908,7 +915,7 @@ class Sunburst {
         var csv = obj;
         // obj = _.clone(obj);
         csv = _.filter(obj, (obje) => {
-            return obje[0].split(">").length < 15;
+            return obje[0].split(">").length < 13;
         });
         var root = {"name": "root", "children": []};
         for (var i = 1; i < csv.length - 1; i++) {
