@@ -6,16 +6,18 @@ class TableauConnector {
     constructor() {
         console.info("Initializing Tableau Connector");
         this.colIdxMaps = {};
+        // mapping between header and the column index
         this.colIdxMaps.getColumnIdx = function (name) {
             try {
                 return this[name];
 
             } catch (err) {
-                console.warn("Could not find coulum " + name + " in given data");
+                console.warn("Could not find column name " + name + " in given dataset.");
                 return -1;
             }
         };
 
+        //Flag set after the initialisation of the Viz
         this.graphInitialized = false;
     }
 
@@ -52,9 +54,13 @@ class TableauConnector {
             let c = columns[j];
             this.colIdxMaps[c.getFieldName()] = c.getIndex();
         }
+
+        let dt = data.getData();
+        console.log(data.getName());
+
+
         try {
-            let dt = data.getData();
-            console.log(data.getName());
+
             var cjString = this.colIdxMaps.getColumnIdx("Cj Full String");
             var conversionsAmmount = this.colIdxMaps.getColumnIdx("Relevance");
 
@@ -65,7 +71,7 @@ class TableauConnector {
                         let con = item[conversionsAmmount].value;
 
                         let t = item[cjString].value;
-                        let jr = t //.replace(/\s/g, "");
+                        let jr = t; //.replace(/\s/g, "");
                         let last = jr.split(">").pop();
 
                         return [jr, con, last.split("/")[1]];
@@ -74,12 +80,14 @@ class TableauConnector {
             if (sunburstJourneyData.length == 0) {
                 throw "No data to visualize !"
             }
+
+            // Select only unique paths based on the cj_string which represents the journey
             var unique = _.uniqBy(sunburstJourneyData, (s) => {
                 return s[0]
             });
             //var csv = json2csv({data: sunburstJourneyData});
-            console.log(unique.length);
-            console.log(unique)
+            console.info("There are :" + unique.length + " unique paths foud in the data");
+            //console.log(unique)
             if (!this.graphInitialized) {
                 let sb = new Sunburst({}, unique);
                 window.viz = sb;
@@ -94,7 +102,6 @@ class TableauConnector {
 
             this.errorWrapped("Reading received data ", function () {
                 let body = document.getElementsByTagName("body")[0]
-                console.log("Wrapped")
             })
         }
 
@@ -111,23 +118,24 @@ class TableauConnector {
             .then(this.onData.bind(this), this.onDataLoadError.bind(this));
     }
 
-    onDataLoadOk(table) {
+    /* TODO: Separate the connector logic form the vizualisation specific transformations
+     onDataLoadOk(table) {
 
-        var ref = table.getColumns();
-        for (var j = 0, len = ref.length; j < len; j++) {
-            c = ref[j];
-            this.colIdxMaps[c.getFieldName()] = c.getIndex();
-        }
-        console.log("table.getColumns() :");
+     var ref = table.getColumns();
+     for (var j = 0, len = ref.length; j < len; j++) {
+     c = ref[j];
+     this.colIdxMaps[c.getFieldName()] = c.getIndex();
+     }
+     console.log("table.getColumns() :");
 
-        console.log(table.getColumns());
+     console.log(table.getColumns());
 
 
-        onData(table);
-        //updateChartWithData(table);
+     this.onData(table);
+     //updateChartWithData(table);
 
-        return true;
-    }
+     return true;
+     }*/
 
     onDataLoadError(err) {
         console.log("serer");
@@ -135,12 +143,10 @@ class TableauConnector {
     }
 
     initConnector() {
-        //var onDataLoadError, onDataLoadOk, tableau, updateChart;
         var tableau = this.getTableau();
 
-        console.log("Initialising Tableau !")
+        console.info("Initialising Tableau Connector!")
 
-        var data;
         this.getCurrentWorksheet()
             .getUnderlyingDataAsync({
                 ignoreSelection: false,
@@ -149,7 +155,7 @@ class TableauConnector {
                 ignoreAliases: true
             }).then(this.onData.bind(this));
 
-
+        // ...and listen to filter adjustments of the side of the Tableau Dashboard
         return this.getCurrentViz().addEventListener(tableau.TableauEventName.FILTER_CHANGE, this.updateChart.bind(this));
     }
 }

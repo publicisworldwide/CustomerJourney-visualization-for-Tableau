@@ -42,7 +42,7 @@ var defaultOptions = {
             "display": 12,
             "mb.com": 13,
             "email": 14,
-            "offsite_paxid": 15,
+            "offsite_paid": 15,
             "configurator": 16
         },
         "offsite": {
