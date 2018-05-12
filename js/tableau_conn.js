@@ -1,12 +1,35 @@
 import _ from "../node_modules/lodash";
-import d3 from "../node_modules/d3v4";
 
+/**
+ * Tableau Connector base class.
+ * JS Plugin for extending Tableau over embedded customized visualisation.
+ * It provides simple ETL-similar way to access data from the Tableau Dashboard over TableauJS.
+ *
+ * @constructor
+ * @param {object} object with parameters given for each request to Tableau API
+ * @param {function} transform_callback - callback function with is applied on the data before initialising the visualisation.
+ * @param {function} onInit - Initial callback
+ * @param {function} onUpdate - Update logic for the parameter change
+ */
 class TableauConnector {
 
-    constructor() {
+    constructor(options,transform_callback, onInit, onUpdate) {
         console.info("Initializing Tableau Connector");
-        this.colIdxMaps = {};
+
+        let defaultOptions={
+            maxRows: 0,
+            ignoreSelection: false,
+            includeAllColumns: true,
+            ignoreAliases: true
+        };
+
+        this.opt.tableau_params = Object.assign({}, defaultOptions, options);
+
+
+        //Flag set after the initialisation of the Viz
+        this.graphInitialized = false;
         // mapping between header and the column index
+        this.colIdxMaps = {};
         this.colIdxMaps.getColumnIdx = function (name) {
             try {
                 return this[name];
@@ -17,9 +40,19 @@ class TableauConnector {
             }
         };
 
-        //Flag set after the initialisation of the Viz
-        this.graphInitialized = false;
+        if (typeof (transform_callback) === "function") {
+            this.transform_fn = transform_callback;
+        } else {
+            this.transform_fn = (data) => {
+                return data
+            }
+        }
+        //End callback
+        this.init_callback = onInit;
+        this.update_callback = onUpdate;
+
     }
+
 
     getTableau() {
         return parent.parent.tableau;
@@ -55,90 +88,48 @@ class TableauConnector {
             this.colIdxMaps[c.getFieldName()] = c.getIndex();
         }
 
-        let dt = data.getData();
         console.log(data.getName());
 
 
         try {
-
-            var cjString = this.colIdxMaps.getColumnIdx("Cj Full String");
-            var conversionsAmmount = this.colIdxMaps.getColumnIdx("Relevance");
-
-
-            var sunburstJourneyData =
-                _.chain(data.getData())
-                    .map((item) => {
-                        let con = item[conversionsAmmount].value;
-
-                        let t = item[cjString].value;
-                        let jr = t; //.replace(/\s/g, "");
-                        let last = jr.split(">").pop();
-
-                        return [jr, con, last.split("/")[1]];
-                    }).value();
-
-            if (sunburstJourneyData.length == 0) {
-                throw "No data to visualize !"
-            }
-
-            // Select only unique paths based on the cj_string which represents the journey
-            var unique = _.uniqBy(sunburstJourneyData, (s) => {
-                return s[0]
-            });
-            //var csv = json2csv({data: sunburstJourneyData});
-            console.info("There are :" + unique.length + " unique paths foud in the data");
-            //console.log(unique)
-            if (!this.graphInitialized) {
-                let sb = new Sunburst({}, unique);
-                window.viz = sb;
-                this.graphInitialized = true;
-            } else {
-                console.log("Updating Data!");
-
-                window.viz.updateData(unique);
-            }
-            //sb.createVisualization
+            let transformed = this.transform_fn.bind(this, data.getData());
         } catch (err) {
 
-            this.errorWrapped("Reading received data ", function () {
-                let body = document.getElementsByTagName("body")[0]
+            this.errorWrapped(err, function () {
+                let msg= "Error while transforming the data";
+                console.warn(msg)
+                let body = document.getElementsByTagName("body")[0];
+                body.append("<p id='err_log'>"+msg+"</p>")
             })
         }
+        //var csv = json2csv({data: sunburstJourneyData});
+        //console.log(transformed)
 
-        return true;
+        if (!this.graphInitialized) {
+            console.info("Initialising Viz!");
+
+            this.graphInitialized = true;
+
+            return this.init_callback.call(this, transformed)
+        } else {
+
+            return this.update_callback.call(transformed)
+
+        }
+
+
     }
 
     updateChart() {
-        return this.getCurrentWorksheet().getUnderlyingDataAsync({
-            maxRows: 0,
-            ignoreSelection: false,
-            includeAllColumns: true,
-            ignoreAliases: true
-        })
+        return this.getCurrentWorksheet().getUnderlyingDataAsync(this.opt.tableau_params)
             .then(this.onData.bind(this), this.onDataLoadError.bind(this));
     }
 
-    /* TODO: Separate the connector logic form the vizualisation specific transformations
-     onDataLoadOk(table) {
-
-     var ref = table.getColumns();
-     for (var j = 0, len = ref.length; j < len; j++) {
-     c = ref[j];
-     this.colIdxMaps[c.getFieldName()] = c.getIndex();
-     }
-     console.log("table.getColumns() :");
-
-     console.log(table.getColumns());
-
-
-     this.onData(table);
-     //updateChartWithData(table);
-
-     return true;
-     }*/
 
     onDataLoadError(err) {
-        console.log("serer");
+
+        let body = document.getElementsByTagName("body")[0];
+        body.append("<p id='err_log'>"+err+"</p>")
         return console.err("Error during Tableau Async request: ", err);
     }
 
@@ -148,19 +139,59 @@ class TableauConnector {
         console.info("Initialising Tableau Connector!")
 
         this.getCurrentWorksheet()
-            .getUnderlyingDataAsync({
-                ignoreSelection: false,
-                maxRows: 0,
-                includeAllColumns: false,
-                ignoreAliases: true
-            }).then(this.onData.bind(this));
+            .getUnderlyingDataAsync(this.opt.tableau_params).then(this.onData.bind(this));
 
         // ...and listen to filter adjustments of the side of the Tableau Dashboard
+        //this.getCurrentViz().addEventListener(tableau.TableauEventName.PARAMETER_VALUE_CHANGE, this.updateChart.bind(this));
         return this.getCurrentViz().addEventListener(tableau.TableauEventName.FILTER_CHANGE, this.updateChart.bind(this));
     }
 }
 
+//Sunburst specific data transformation
+function transform(data) {
+    //Extract the journey record and it's frequency
+    var cjStringIdx = this.colIdxMaps.getColumnIdx("Cj Full String");
+    var frequencyIdx = this.colIdxMaps.getColumnIdx("Relevance");
 
-var tc = new TableauConnector();
+
+    var sunburstJourneyData =
+        _.chain(data.getData())
+            .map((item) => {
+                let con = item[frequencyIdx].value;
+                let t = item[cjStringIdx].value;
+                let jr = t; //.replace(/\s/g, "");
+                let last = jr.split(">").pop();
+
+                return [jr, con, last.split("/")[1]];
+            }).value();
+
+
+    if (sunburstJourneyData.length == 0) {
+        throw "No data to visualize !"
+    }
+    console.info("There are :" + unique.length + " unique paths foud in the data");
+
+    // Select only unique paths based on the cj_string which represents the journey
+    return _.uniqBy(sunburstJourneyData, (s) => {
+        return s[0]
+    });
+
+
+}
+
+
+var tc = new TableauConnector({},transform,
+    //On init
+    (dt) => {
+
+        var sb = new Sunburst({}, dt);
+        window.viz = sb;
+    },
+    //On update
+    (dt) => {
+        console.info("Updating Data!");
+        window.viz.updateData(dt);
+
+    });
 tc.initConnector();
 
