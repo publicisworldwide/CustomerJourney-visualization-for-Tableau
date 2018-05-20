@@ -8,23 +8,21 @@ import _ from "../node_modules/lodash";
  * @constructor
  * @param {object} object with parameters given for each request to Tableau API
  * @param {function} transform_callback - callback function with is applied on the data before initialising the visualisation.
- * @param {function} onInit - Initial callback
+ * @param {function} onInit -  Initial callback
  * @param {function} onUpdate - Update logic for the parameter change
  */
 class TableauConnector {
 
-    constructor(options,transform_callback, onInit, onUpdate) {
+    constructor(options, transform_callback, onInit, onUpdate) {
         console.info("Initializing Tableau Connector");
 
-        let defaultOptions={
+        let defaultOptions = {
             maxRows: 0,
             ignoreSelection: false,
             includeAllColumns: true,
             ignoreAliases: true
         };
-
         this.opt.tableau_params = Object.assign({}, defaultOptions, options);
-
 
         //Flag set after the initialisation of the Viz
         this.graphInitialized = false;
@@ -33,23 +31,20 @@ class TableauConnector {
         this.colIdxMaps.getColumnIdx = function (name) {
             try {
                 return this[name];
-
             } catch (err) {
                 console.warn("Could not find column name " + name + " in given dataset.");
                 return -1;
             }
         };
-
-        if (typeof (transform_callback) === "function") {
-            this.transform_fn = transform_callback;
-        } else {
-            this.transform_fn = (data) => {
-                return data
-            }
+        function passData(data) {
+            return data;
         }
-        //End callback
-        this.init_callback = onInit;
-        this.update_callback = onUpdate;
+
+        this.transform_fn =  typeof(arguments[1]) === "function" ? arguments[1]: passData;
+        this.init_callback =  typeof(arguments[2]) === "function" ? onInit: passData;
+        this.update_callback =  typeof(arguments[3]) === "function" ? onUpdate: passData;
+
+
 
     }
 
@@ -90,30 +85,21 @@ class TableauConnector {
 
         console.log(data.getName());
 
-
         try {
-            let transformed = this.transform_fn.bind(this, data.getData());
+            var transformed = this.transform_fn.bind(this, data.getData());
         } catch (err) {
-
             this.errorWrapped(err, function () {
-                let msg= "Error while transforming the data";
-                console.warn(msg)
                 let body = document.getElementsByTagName("body")[0];
-                body.append("<p id='err_log'>"+msg+"</p>")
+                body.append("<p id='err_log'>Error while transforming the data</p>")
             })
         }
-        //var csv = json2csv({data: sunburstJourneyData});
-        //console.log(transformed)
 
         if (!this.graphInitialized) {
-            console.info("Initialising Viz!");
-
             this.graphInitialized = true;
-
             return this.init_callback.call(this, transformed)
         } else {
 
-            return this.update_callback.call(transformed)
+            return this.update_callback.call(this, transformed)
 
         }
 
@@ -129,7 +115,7 @@ class TableauConnector {
     onDataLoadError(err) {
 
         let body = document.getElementsByTagName("body")[0];
-        body.append("<p id='err_log'>"+err+"</p>")
+        body.append("<p id='err_log'>" + err + "</p>")
         return console.err("Error during Tableau Async request: ", err);
     }
 
@@ -169,7 +155,7 @@ function transform(data) {
     if (sunburstJourneyData.length == 0) {
         throw "No data to visualize !"
     }
-    console.info("There are :" + unique.length + " unique paths foud in the data");
+    console.info("There are :" + unique.length + " unique paths found in the data");
 
     // Select only unique paths based on the cj_string which represents the journey
     return _.uniqBy(sunburstJourneyData, (s) => {
@@ -179,19 +165,18 @@ function transform(data) {
 
 }
 
-
-var tc = new TableauConnector({},transform,
-    //On init
-    (dt) => {
-
+var tc = new TableauConnector({}, transform,
+    //
+    function onInit(dt) {
+        console.info("Initialising Viz!");
         var sb = new Sunburst({}, dt);
         window.viz = sb;
     },
-    //On update
-    (dt) => {
+    function onUpdate(dt)  {
         console.info("Updating Data!");
         window.viz.updateData(dt);
-
     });
+
+
 tc.initConnector();
 
