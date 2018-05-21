@@ -19,9 +19,15 @@ In order to use this connector you need to do:
 1. Connect with the Tableau Server per RDP
 2. Move all the above mentioned file to Tableau Server
 3. Import all the files to the webdataconnectors folder of tableau using follwing commands in Powershell:
-    `tabadmin import_webdataconnector ./index.html`
-    `tabadmin import_webdataconnector ./Sunburst.js`
-    `tabadmin import_webdataconnector ./tableau_connector.js`
+    - `tabadmin import_webdataconnector ./index.html`
+    - `tabadmin import_webdataconnector ./Sunburst.js`
+    - `tabadmin import_webdataconnector ./tableau_connector.js`
 4. Copy the returned URL for index.html which should be in following form:
-    `http://<HOST>/#/web_dataconnectors/index.html`
+   - `http://<HOST>/#/web_dataconnectors/index.html`
 5. Add Webview to the dashboard and past there the copied link 
+
+
+### Development
+
+
+### FAQ
