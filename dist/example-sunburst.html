@@ -1,0 +1,125 @@
+
+<html>
+<head>
+    <title>Sunburst Diagram frame</title>
+
+    <script
+            src="https://code.jquery.com/jquery-2.2.4.js"
+            integrity="sha256-iT6Q9iMJYuQiMWNd9lDyBUStIq/8PuOW33aOqmvFpqI="
+            crossorigin="anonymous">
+    </script>
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://d3js.org/d3-color.v1.min.js"></script>
+    <script src="https://d3js.org/d3-scale-chromatic.v1.min.js"></script>
+    <script src="https://d3js.org/d3-interpolate.v1.min.js"></script>
+
+    <!--  Path to viz   -->
+    <script src ="https://s3.eu-central-1.amazonaws.com/sunburst-tableau/js/Sunburst.js" type="text/javascript"></script>
+
+    <!--  Path to the ngrok  -->
+    <script type="text/javascript" src="<>/dist/bundle.js" ></script>
+
+
+
+    <style>
+
+        * { margin:0; padding:0; } /* to remove the top and left whitespace */
+        html, body { width:100%; height:100%; } /* just to be sure these are full screen*/
+        svg { display:block; } /* To remove the scrollbars */
+        body { font-family: "Open Sans", sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            background-color: #ffffff;
+            margin-top: 10px;
+        }
+
+
+
+
+        #main {
+            float: left;
+            width: 100%;
+        }
+
+        #sidebar {
+            position: absolute;
+            right: 20px;
+            top: 10px;
+            width: 100px;
+            z-index: 10;
+        }
+
+        #sunburst-breadcrumbs {
+            position: absolute;
+            width: 100%;
+        }
+
+        #sunburst-legend {
+
+            position: absolute;
+            right: 0vw;
+            top: 30vh;
+
+        }
+
+        #sunburst-breadcrumbs text, #sunburst-legend text {
+            font-weight: 500;
+            fill: #fff;
+        }
+
+        #sunburst-chart {
+            position: relative;
+            margin-top: 10vh;
+        }
+
+        #sunburst-chart path {
+            width: 100%
+            stroke: #fff;
+        }
+
+        #sunburst-description{
+            padding: 1vh 1vw;
+            position: absolute;
+            top: 11vh;
+            font-size: 1.2em;
+        }
+
+        #explanation-texts {
+            position: absolute;
+            top: 0;
+            left: 0;
+            text-align:left;
+            color: #666;
+            z-index: 1;
+            opacity: 0;
+        }
+
+        #percentage {
+            font-size: 1.8em;
+        }
+    </style>
+
+</head>
+<body>
+
+<div id="main">
+    <div id="sidebar">
+        <!-- <button style="width: 100%;    height: 5vh;"  class="btn btn-default" id="togglelegend"> Legend</button>-->
+        <button style="width: 100%;  height: 5vh;" class="btn " id="reset"> Reset view</button>
+        <div id="sunburst-legend" style=""></div>
+    </div>
+    <div id="sunburst-breadcrumbs"></div>
+    <div id="sunburst-description" style="">
+        <span id="percentage"></span><br/>
+        <span class="explanation-text">of visits begin with this sequence of pages</span>
+    </div>
+    <div id="sunburst-chart">
+
+    </div>
+</div>
+
+
+</body>
+</html>

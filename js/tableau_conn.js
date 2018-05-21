@@ -14,15 +14,14 @@ import _ from "../node_modules/lodash";
 class TableauConnector {
 
     constructor(options, transform_callback, onInit, onUpdate) {
-        console.info("Initializing Tableau Connector");
-
-        let defaultOptions = {
-            maxRows: 0,
+        this.opt = {};
+        let tableau_default_params = {
+            maxRows: 0, // Get all rows 
             ignoreSelection: false,
-            includeAllColumns: true,
+            includeAllColumns: false, //Requesting all the data columns from i.e calculated fields can be slow
             ignoreAliases: true
         };
-        this.opt.tableau_params = Object.assign({}, defaultOptions, options);
+        this.opt.tableau_params = Object.assign({}, tableau_default_params, options);
 
         //Flag set after the initialisation of the Viz
         this.graphInitialized = false;
@@ -66,6 +65,7 @@ class TableauConnector {
             var args, err;
             args = 1 <= arguments.length ? slice.call(arguments, 0) : [];
             try {
+
                 return fn.apply(null, args);
             } catch (error) {
                 err = error;
@@ -86,11 +86,11 @@ class TableauConnector {
         console.log(data.getName());
 
         try {
-            var transformed = this.transform_fn.bind(this, data.getData());
+            var transformed = this.transform_fn.call(this, data.getData());
         } catch (err) {
             this.errorWrapped(err, function () {
-                let body = document.getElementsByTagName("body")[0];
-                body.append("<p id='err_log'>Error while transforming the data</p>")
+                console.error(err.message)
+                $("#main").append("<h2  id='err_log' >Error while transforming the data</h2>")
             })
         }
 
@@ -137,11 +137,11 @@ class TableauConnector {
 function transform(data) {
     //Extract the journey record and it's frequency
     var cjStringIdx = this.colIdxMaps.getColumnIdx("Cj Full String");
-    var frequencyIdx = this.colIdxMaps.getColumnIdx("Relevance");
+    var frequencyIdx = this.colIdxMaps.getColumnIdx("Frequenz");
 
 
     var sunburstJourneyData =
-        _.chain(data.getData())
+        _.chain(data)
             .map((item) => {
                 let con = item[frequencyIdx].value;
                 let t = item[cjStringIdx].value;
@@ -155,12 +155,13 @@ function transform(data) {
     if (sunburstJourneyData.length == 0) {
         throw "No data to visualize !"
     }
+    let unique = _.uniqBy(sunburstJourneyData, (s) => {
+        return s[0]
+    });
     console.info("There are :" + unique.length + " unique paths found in the data");
 
     // Select only unique paths based on the cj_string which represents the journey
-    return _.uniqBy(sunburstJourneyData, (s) => {
-        return s[0]
-    });
+    return unique
 
 
 }
