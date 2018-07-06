@@ -1,14 +1,14 @@
 #  Customer journey visualisation 
 **Sunburst diagram** plugin for Tableau JS
-This a D3.js viusalisation which can be embedded in Tableau Dashboard as iFrame / WebDataConnector 
+This a D3.js viusalisation which can be embedded in Tableau Dashboard as iFrame / WebDataConnector. In order to use it you need to have access to Tableau Server. 
 
-**File Structure **
+
+**File Structure**
 - index.html - Main HTML file including CSS and HTML for the vizualisation 
 - Sunburst.js - JS Class including code for the Sunburst diagram in D3.js
 - tableau_connector.js - JS wrapper which handles sharing data between dashboard and suburst iframe
 
-
-**Requirement of the viz:**
+**Data requirements of the viz:**
 In order to work properly the dataset includedn in Tableau should have:
 - "CJ Full String" column including the whole path
 - "Relevance" column describing how often does the journey occur
