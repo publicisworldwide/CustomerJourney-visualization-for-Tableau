@@ -1,7 +1,8 @@
 #  Customer journey visualisation 
 **Sunburst diagram** plugin for Tableau JS
 This a D3.js viusalisation which can be embedded in Tableau Dashboard as iFrame / WebDataConnector. In order to use it you need to have access to Tableau Server. 
-![Alt text](/Screen CJ.png?raw=true "Best practises in development ")
+
+![Live example](/Screen_CJ.png?raw=true "Best practises in development ")
 
 
 **File Structure**
