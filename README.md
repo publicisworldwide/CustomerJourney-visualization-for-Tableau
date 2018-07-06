@@ -25,12 +25,12 @@ In order to use this connector you need to do:
    - `http://<HOST>/#/web_dataconnectors/index.html`
 5. Add WebView to the dashboard and past there the copied link 
 
-![Alt text](http://full/path/to/img.jpg "Paste the copied link here!")
+![Alt text](/embeding-iframe.jpg?raw=true "Best practises in development ")
 
 ### Development
 
-![Alt text](http://full/path/to/img.jpg "Best practises in development ")
 
+![Development Enviroment](/DevEnv.png?raw=true "Paste the copied link here!")
 ### FAQ
 - Q: Does it work with Tableau Public ? 
   A: No, unfortunately it requires changes to be made on behalf of Tableau Server thus it won't work with Tableau Public 
